@@ -37,9 +37,27 @@ export async function fetchRepoUsers(repo, token = null) {
 }
 
 /** Tutti gli utenti: quelli del sito hanno la precedenza su quelli di base con lo stesso nome. */
+// Account creati senza token: restano salvati su questo dispositivo.
+const LOCAL_KEY = 'hlmap:localUsers';
+function readLocalUsers() {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+function saveLocalUsers(list) {
+  try {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(list));
+  } catch {
+    throw new Error('Il browser non permette di salvare l’account (navigazione privata?)');
+  }
+}
+
 export async function loadAllUsers(repo) {
   const [bundled, fromRepo] = await Promise.all([fetchBundledUsers(), fetchRepoUsers(repo)]);
   const map = new Map();
+  for (const u of readLocalUsers()) map.set(u.username.toLowerCase(), { ...u, source: 'locale' });
   for (const u of bundled) map.set(u.username.toLowerCase(), { ...u, source: 'file' });
   for (const u of fromRepo.users) map.set(u.username.toLowerCase(), { ...u, source: 'sito' });
   return { users: [...map.values()], invites: fromRepo.invites };
@@ -52,14 +70,23 @@ export function validateUsername(name) {
 
 /** Registrazione con codice invito: crea l'utente e lo salva sul repo. */
 export async function registerUser(repo, { username, password, code }) {
-  if (!repo) throw new Error('Registrazione disponibile solo sul sito online');
   const { users, invites } = await loadAllUsers(repo);
   if (users.some((u) => same(u.username, username))) throw new Error('Username già in uso');
 
   const open = !String(code || '').trim();
+  // Nessun codice e registrazione online non attiva → account su questo dispositivo, senza token
+  if (open && !invites.some((i) => i.open)) {
+    const entry = {
+      ...(await createUserEntry({ username, password, role: 'editor', token: null })),
+      createdAt: new Date().toISOString(),
+    };
+    saveLocalUsers([...readLocalUsers().filter((u) => !same(u.username, username)), entry]);
+    return { username, role: 'editor', token: null };
+  }
+  if (!repo) throw new Error('I codici funzionano solo sul sito online');
+
   const secret = normalizeCode(open ? OPEN_CODE : code);
   const candidates = invites.filter((i) => !!i.open === open);
-  if (open && !candidates.length) throw new Error('La registrazione libera non è attiva: serve un codice');
   let invite = null;
   let payload = null;
   for (const inv of candidates) {

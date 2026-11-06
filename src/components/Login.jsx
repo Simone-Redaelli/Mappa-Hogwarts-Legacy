@@ -13,16 +13,17 @@ export default function Login({ config, repo, onLogin }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [openReg, setOpenReg] = useState(null); // null = non so ancora
-  const [showCode, setShowCode] = useState(false);
+  const [showCode, setShowCode] = useState(() => !!new URLSearchParams(window.location.search).get('invito'));
 
   useEffect(() => {
-    if (tab !== 'register' || openReg !== null || !repo) return;
+    if (tab !== 'register' || openReg !== null) return;
+    if (!repo) return setOpenReg(false);
     fetchRepoUsers(repo)
       .then((d) => setOpenReg(isOpenRegistration(d.invites)))
       .catch(() => setOpenReg(false));
   }, [tab, openReg, repo]);
 
-  const needCode = !openReg || showCode;
+  const needCode = showCode; // il codice è sempre facoltativo
 
   const switchTab = (t) => {
     setTab(t);
@@ -126,17 +127,31 @@ export default function Login({ config, repo, onLogin }) {
                 />
               </label>
             )}
-            {!repo && <div className="login-note">La registrazione funziona solo sul sito pubblicato su GitHub.</div>}
-            {repo && openReg === null && <div className="login-note">Controllo la registrazione…</div>}
-            {openReg && !showCode && (
+            {!showCode && (
               <div className="login-note">
-                Registrazione libera: scegli username e password.{' '}
+                {openReg === false
+                  ? 'Scegli username e password: l’account e i tuoi marker restano salvati su questo dispositivo.'
+                  : 'Scegli username e password e sei dentro.'}{' '}
                 <button type="button" className="link" onClick={() => setShowCode(true)}>
-                  Ho un codice
+                  Ho un codice invito
                 </button>
               </div>
             )}
-            {openReg === false && <div className="login-note">Il codice te lo dà l'amministratore della mappa.</div>}
+            {showCode && (
+              <div className="login-note">
+                Il codice te lo dà l'amministratore.{' '}
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => {
+                    setShowCode(false);
+                    setCode('');
+                  }}
+                >
+                  Registrati senza codice
+                </button>
+              </div>
+            )}
           </>
         )}
 
