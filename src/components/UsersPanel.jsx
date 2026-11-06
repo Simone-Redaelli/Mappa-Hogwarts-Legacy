@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createInvite, deleteInvite, deleteRepoUser, fetchBundledUsers, fetchRepoUsers } from '../lib/users.js';
+import {
+  createInvite,
+  deleteInvite,
+  deleteRepoUser,
+  disableOpenRegistration,
+  enableOpenRegistration,
+  fetchBundledUsers,
+  fetchRepoUsers,
+} from '../lib/users.js';
 import { describeError } from '../lib/github.js';
 
 const ROLE = { admin: 'Admin', editor: 'Editor', viewer: 'Viewer' };
@@ -13,6 +21,7 @@ export default function UsersPanel({ repo, session, onClose }) {
   const [form, setForm] = useState({ role: 'editor', maxUses: '', days: '', label: '' });
   const [newCode, setNewCode] = useState(null);
   const [copied, setCopied] = useState('');
+  const [openRole, setOpenRole] = useState('editor');
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
 
@@ -68,7 +77,8 @@ export default function UsersPanel({ repo, session, onClose }) {
   };
 
   const repoUsers = data?.users || [];
-  const invites = data?.invites || [];
+  const openInvite = (data?.invites || []).find((i) => i.open);
+  const invites = (data?.invites || []).filter((i) => !i.open);
   const bundledOnly = bundled.filter((b) => !repoUsers.some((u) => u.username.toLowerCase() === b.username.toLowerCase()));
 
   return (
@@ -82,6 +92,46 @@ export default function UsersPanel({ repo, session, onClose }) {
         </div>
 
         {error && <div className="login-error">{error}</div>}
+
+        <section className="up-section">
+          <h3>Registrazione libera</h3>
+          <div className={`open-reg${openInvite ? ' on' : ''}`}>
+            <div className="up-main">
+              <strong>{openInvite ? 'Attiva' : 'Disattivata'}</strong>
+              <small>
+                {openInvite
+                  ? `Chiunque abbia il link può registrarsi come ${ROLE[openInvite.role]} · ${openInvite.uses || 0} registrazioni`
+                  : 'Con la registrazione libera chiunque abbia il link crea un account senza codice.'}
+              </small>
+            </div>
+            {!openInvite && (
+              <select value={openRole} onChange={(e) => setOpenRole(e.target.value)} disabled={busy}>
+                <option value="editor">come Editor</option>
+                <option value="viewer">come Viewer</option>
+              </select>
+            )}
+            <button
+              className={`btn btn-sm ${openInvite ? 'btn-danger' : 'btn-gold'}`}
+              disabled={busy || !data}
+              onClick={() =>
+                openInvite
+                  ? run(() => disableOpenRegistration(repo, session))
+                  : window.confirm(
+                      'Attivare la registrazione libera?\n\nChiunque abbia il link potrà registrarsi. Un utente esperto potrebbe ricavare il token e modificare i dati: tieni i dati in un repository separato (vedi config.json → dataRepo) e spegnila quando non serve.'
+                    ) && run(() => enableOpenRegistration(repo, session, openRole))
+              }
+            >
+              {openInvite ? 'Disattiva' : 'Attiva'}
+            </button>
+          </div>
+          {openInvite && (
+            <div className="setup-actions" style={{ justifyContent: 'flex-start' }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => copy(siteUrl, 'link')}>
+                {copied === 'link' ? 'Copiato ✓' : 'Copia link del sito'}
+              </button>
+            </div>
+          )}
+        </section>
 
         <section className="up-section">
           <h3>Nuovo codice di registrazione</h3>

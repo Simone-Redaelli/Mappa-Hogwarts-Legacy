@@ -8,6 +8,7 @@
     "owner": "",
     "repo": "",
     "branch": "data",
-    "path": "markers.json"
+    "path": "markers.json",
+    "dataRepo": ""
   }
 }

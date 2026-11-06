@@ -125,6 +125,10 @@ export function resolveRepo(github = {}) {
     owner = owner || user;
     repo = repo || first || `${user}.github.io`;
   }
+  if (github.dataRepo && github.dataRepo.includes('/')) {
+    // dati in un repository separato: il token serve solo per quello
+    [owner, repo] = github.dataRepo.split('/').map((s) => s.trim());
+  }
   if (!owner || !repo) return null;
   return { owner, repo, branch: github.branch || 'data', path: github.path || 'markers.json' };
 }

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { unlockUser } from '../lib/crypto.js';
-import { loadAllUsers, registerUser, validateUsername } from '../lib/users.js';
+import { fetchRepoUsers, isOpenRegistration, loadAllUsers, registerUser, validateUsername } from '../lib/users.js';
 import Crest from './Crest.jsx';
 
 export default function Login({ config, repo, onLogin }) {
@@ -12,6 +12,17 @@ export default function Login({ config, repo, onLogin }) {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [openReg, setOpenReg] = useState(null); // null = non so ancora
+  const [showCode, setShowCode] = useState(false);
+
+  useEffect(() => {
+    if (tab !== 'register' || openReg !== null || !repo) return;
+    fetchRepoUsers(repo)
+      .then((d) => setOpenReg(isOpenRegistration(d.invites)))
+      .catch(() => setOpenReg(false));
+  }, [tab, openReg, repo]);
+
+  const needCode = !openReg || showCode;
 
   const switchTab = (t) => {
     setTab(t);
@@ -43,11 +54,11 @@ export default function Login({ config, repo, onLogin }) {
     if (v) return setError(v);
     if (password.length < 10) return setError('La password deve avere almeno 10 caratteri');
     if (password !== password2) return setError('Le password non coincidono');
-    if (!code.trim()) return setError('Inserisci il codice di registrazione');
+    if (needCode && !code.trim()) return setError('Inserisci il codice di registrazione');
     setBusy(true);
     setError('');
     try {
-      const s = await registerUser(repo, { username: name, password, code });
+      const s = await registerUser(repo, { username: name, password, code: needCode ? code : '' });
       // tolgo ?invito= dall'indirizzo
       if (window.location.search) window.history.replaceState(null, '', window.location.pathname + window.location.hash);
       onLogin(s, remember);
@@ -103,18 +114,29 @@ export default function Login({ config, repo, onLogin }) {
               <span>Ripeti password</span>
               <input type="password" value={password2} onChange={(e) => setPassword2(e.target.value)} autoComplete="new-password" />
             </label>
-            <label className="field">
-              <span>Codice di registrazione</span>
-              <input
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="XXXX-XXXX-XXXX-XXXX"
-                spellCheck={false}
-                autoComplete="off"
-              />
-            </label>
+            {needCode && (
+              <label className="field">
+                <span>Codice di registrazione</span>
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  placeholder="XXXX-XXXX-XXXX-XXXX"
+                  spellCheck={false}
+                  autoComplete="off"
+                />
+              </label>
+            )}
             {!repo && <div className="login-note">La registrazione funziona solo sul sito pubblicato su GitHub.</div>}
-            <div className="login-note">Il codice te lo dà l'amministratore della mappa.</div>
+            {repo && openReg === null && <div className="login-note">Controllo la registrazione…</div>}
+            {openReg && !showCode && (
+              <div className="login-note">
+                Registrazione libera: scegli username e password.{' '}
+                <button type="button" className="link" onClick={() => setShowCode(true)}>
+                  Ho un codice
+                </button>
+              </div>
+            )}
+            {openReg === false && <div className="login-note">Il codice te lo dà l'amministratore della mappa.</div>}
           </>
         )}
 

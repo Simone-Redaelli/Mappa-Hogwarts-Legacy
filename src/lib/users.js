@@ -6,6 +6,8 @@ import { createUserEntry, seal, unseal, generateCode, normalizeCode } from './cr
 
 const base = import.meta.env.BASE_URL;
 const FILE = 'users.json';
+// Codice "pubblico" usato dalla registrazione libera: chiunque abbia il sito può aprire quell'invito.
+const OPEN_CODE = 'REGISTRAZIONE-LIBERA-HOGWARTS';
 const same = (a, b) => a.toLowerCase() === b.toLowerCase();
 const empty = () => ({ users: [], invites: [] });
 
@@ -54,10 +56,13 @@ export async function registerUser(repo, { username, password, code }) {
   const { users, invites } = await loadAllUsers(repo);
   if (users.some((u) => same(u.username, username))) throw new Error('Username già in uso');
 
-  const secret = normalizeCode(code);
+  const open = !String(code || '').trim();
+  const secret = normalizeCode(open ? OPEN_CODE : code);
+  const candidates = invites.filter((i) => !!i.open === open);
+  if (open && !candidates.length) throw new Error('La registrazione libera non è attiva: serve un codice');
   let invite = null;
   let payload = null;
-  for (const inv of invites) {
+  for (const inv of candidates) {
     const p = await unseal(inv, secret);
     if (p?.token) {
       invite = inv;
@@ -120,6 +125,45 @@ export async function createInvite(repo, session, { role = 'editor', maxUses = 0
     `nuovo codice invito (${role})`
   );
   return code;
+}
+
+export const isOpenRegistration = (invites) => invites.some((i) => i.open);
+
+/** Attiva la registrazione libera (sostituisce quella esistente). */
+export async function enableOpenRegistration(repo, session, role = 'editor') {
+  const invite = {
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    open: true,
+    role,
+    label: 'Registrazione libera',
+    maxUses: 0,
+    expires: null,
+    uses: 0,
+    createdBy: session.username,
+    createdAt: new Date().toISOString(),
+    ...(await seal(normalizeCode(OPEN_CODE), { role, token: session.token })),
+  };
+  return updateJsonFile(
+    repo,
+    session.token,
+    FILE,
+    (d) => {
+      d = d || empty();
+      d.invites = [...(d.invites || []).filter((i) => !i.open), invite];
+      return d;
+    },
+    `registrazione libera attivata (${role})`
+  );
+}
+
+export async function disableOpenRegistration(repo, session) {
+  return updateJsonFile(
+    repo,
+    session.token,
+    FILE,
+    (d) => ({ ...(d || empty()), invites: (d?.invites || []).filter((i) => !i.open) }),
+    'registrazione libera disattivata'
+  );
 }
 
 export async function deleteInvite(repo, session, id) {

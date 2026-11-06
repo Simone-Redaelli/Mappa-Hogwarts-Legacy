@@ -334,6 +334,10 @@ code { font: 12px ui-monospace, Menlo, monospace; background: rgba(255,255,255,.
 .up-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .up-main small { color: var(--muted); font-size: 12px; }
 .avatar.sm { width: 28px; height: 28px; font-size: 12px; flex: none; }
+.open-reg { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 10px; flex-wrap: wrap; }
+.open-reg.on { border-color: rgba(92,194,107,.5); background: rgba(92,194,107,.07); }
+.open-reg.on strong { color: #8fe09b; }
+.open-reg select { background: rgba(0,0,0,.35); border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 8px; }
 .code-box { border: 1px solid var(--gold); background: rgba(216,180,90,.06); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
 .code-box .code { font: 700 22px ui-monospace, Menlo, monospace; letter-spacing: .08em; color: var(--gold-2); text-align: center; user-select: all; }
 .code-box p { margin: 0; font-size: 12.5px; color: var(--muted); text-align: center; }
