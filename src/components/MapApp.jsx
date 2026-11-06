@@ -4,6 +4,7 @@ import MarkerEditor from './MarkerEditor.jsx';
 import Crest from './Crest.jsx';
 import CatIcon from './CatIcon.jsx';
 import RegionEditor from './RegionEditor.jsx';
+import UsersPanel from './UsersPanel.jsx';
 import { useMarkers } from '../lib/useMarkers.js';
 import { useMapSource } from '../lib/useMapSource.js';
 import { CATEGORIES, getCat, REGION_COLORS } from '../lib/categories.js';
@@ -73,6 +74,8 @@ export default function MapApp({ config, repo, session, onLogout }) {
   const [panelOpen, setPanelOpen] = useState(() => window.innerWidth > 820);
   const [listLimit, setListLimit] = useState(200);
   const [tab, setTab] = useState('cats');
+  const [usersOpen, setUsersOpen] = useState(false);
+  const isAdmin = session.role === 'admin' && mode === 'github';
 
   const stopTool = () => {
     setTool(null);
@@ -381,10 +384,17 @@ export default function MapApp({ config, repo, session, onLogout }) {
               <span className="avatar">{session.username.slice(0, 1).toUpperCase()}</span>
               <span>
                 {session.username}
-                <small>{canEdit ? 'Editor' : 'Viewer'}</small>
+                <small>{session.role === 'admin' ? 'Admin' : canEdit ? 'Editor' : 'Viewer'}</small>
               </span>
             </div>
             <div className="foot-actions">
+              {isAdmin && (
+                <button className="icon-btn" title="Utenti e codici invito" onClick={() => setUsersOpen(true)}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM19 8v6M22 11h-6" />
+                  </svg>
+                </button>
+              )}
               <button className="icon-btn" title="Esporta backup JSON" onClick={exportJson}>
                 ⤓
               </button>
@@ -548,6 +558,7 @@ export default function MapApp({ config, repo, session, onLogout }) {
       <input ref={mapFileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onMapFile} />
 
       {draft && <MarkerEditor draft={draft} onSave={save} onCancel={() => setDraft(null)} onDelete={del} />}
+      {usersOpen && <UsersPanel repo={repo} session={session} onClose={() => setUsersOpen(false)} />}
       {regionDraft && (
         <RegionEditor draft={regionDraft} onSave={saveRegion} onCancel={() => setRegionDraft(null)} onDelete={delRegion} />
       )}

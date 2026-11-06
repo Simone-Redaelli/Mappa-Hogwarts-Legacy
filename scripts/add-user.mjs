@@ -67,9 +67,9 @@ if (password !== password2) {
   console.log('  Le password non coincidono, annullato.');
   process.exit(1);
 }
-const roleAns = (await ask(rl, '  Ruolo [editor/viewer] (invio = editor): ')).toLowerCase();
-const role = roleAns === 'viewer' ? 'viewer' : 'editor';
-const token = role === 'editor' ? await ask(rl, '  Token GitHub (invio = nessuno, salvataggio solo locale): ') : '';
+const roleAns = (await ask(rl, '  Ruolo [admin/editor/viewer] (invio = admin): ')).toLowerCase();
+const role = ['editor', 'viewer'].includes(roleAns) ? roleAns : 'admin';
+const token = role !== 'viewer' ? await ask(rl, '  Token GitHub (invio = nessuno, salvataggio solo locale): ') : '';
 rl.close();
 
 const entry = await createEntry({ username, password, role, token });

@@ -219,3 +219,39 @@ export async function uploadMap(cfg, token, { blob, w, h, ext }, username) {
   }
   throw new GitHubError('Impossibile aggiornare la mappa, riprova', 409);
 }
+
+/**
+ * Legge-modifica-scrive un JSON sul branch dati, riprovando se qualcun altro
+ * l'ha cambiato nel frattempo. mutate(dati|null) => nuovi dati.
+ */
+export async function updateJsonFile(cfg, token, path, mutate, message) {
+  for (let i = 0; i < 6; i++) {
+    let data = null;
+    let sha = null;
+    try {
+      const f = await gh(token, 'GET', `${repoPath(cfg)}/contents/${path}?ref=${encodeURIComponent(cfg.branch)}&t=${Date.now()}`);
+      data = JSON.parse(b64ToUtf8(f.content));
+      sha = f.sha;
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const next = mutate(data ? structuredClone(data) : null);
+    try {
+      await gh(token, 'PUT', `${repoPath(cfg)}/contents/${path}`, {
+        message,
+        branch: cfg.branch,
+        content: utf8ToB64(JSON.stringify(next, null, 2) + '\n'),
+        ...(sha ? { sha } : {}),
+      });
+      return next;
+    } catch (e) {
+      if (e.status === 409) continue;
+      if (!sha && (e.status === 404 || e.status === 422)) {
+        await ensureBranch(cfg, token);
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new GitHubError('Troppi tentativi, riprova', 409);
+}

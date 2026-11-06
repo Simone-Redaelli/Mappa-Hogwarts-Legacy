@@ -49,6 +49,7 @@ export default function App() {
     return (
       <Login
         config={config}
+        repo={repo}
         onLogin={(s, remember) => {
           const store = remember ? localStorage : sessionStorage;
           store.setItem(SESSION_KEY, JSON.stringify(s));

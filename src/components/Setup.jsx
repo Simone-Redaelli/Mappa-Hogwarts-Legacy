@@ -6,7 +6,7 @@ const base = import.meta.env.BASE_URL;
 
 export default function Setup({ repo }) {
   const [existing, setExisting] = useState([]);
-  const [form, setForm] = useState({ username: '', password: '', password2: '', role: 'editor', token: '' });
+  const [form, setForm] = useState({ username: '', password: '', password2: '', role: 'admin', token: '' });
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -61,6 +61,7 @@ export default function Setup({ repo }) {
           <label className="field">
             <span>Ruolo</span>
             <select value={form.role} onChange={set('role')}>
+              <option value="admin">Admin — editor + crea codici invito e gestisce utenti</option>
               <option value="editor">Editor — aggiunge e modifica marker</option>
               <option value="viewer">Viewer — solo visualizzazione</option>
             </select>
