@@ -1,0 +1,51 @@
+name: Deploy su GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trova la cartella del progetto
+        id: dir
+        run: echo "path=$(dirname "$(find . -name vite.config.js -not -path '*/node_modules/*' | head -1)")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installa
+        run: npm install
+        working-directory: ${{ steps.dir.outputs.path }}
+
+      - name: Build
+        run: npm run build
+        working-directory: ${{ steps.dir.outputs.path }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.dir.outputs.path }}/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
