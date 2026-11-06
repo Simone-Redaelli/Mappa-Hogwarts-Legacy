@@ -1,0 +1,13 @@
+{
+  "title": "Hogwarts Legacy",
+  "subtitle": "Mappa interattiva",
+  "map": {
+    "image": "map.jpg"
+  },
+  "github": {
+    "owner": "",
+    "repo": "",
+    "branch": "data",
+    "path": "markers.json"
+  }
+}

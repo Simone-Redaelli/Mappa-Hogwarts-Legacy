@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "role": "editor",
+      "iter": 250000,
+      "salt": "RKK0/NDH8dGcFfqlrtDcWA==",
+      "iv": "6gK7ofA5RDFgI/Ze",
+      "data": "aC/EwNhet/vPjgpNdn6J25F30Dj1piuPTwnQn/fVAIZekDnUS4Gs9bSc/nEScLSgawKjL/4UTMJmFxMAB9D55xw="
+    }
+  ]
+}
